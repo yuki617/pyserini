@@ -1,11 +1,12 @@
 import sys
 sys.path.insert(0, './')
-import argparse
-from sklearn.naive_bayes import MultinomialNB
-import helper
-from pyserini.vectorizer import TfidfVectorizer
-from pyserini.search import pysearch
+
 import os
+from pyserini.search import pysearch
+from pyserini.vectorizer import TfidfVectorizer
+import helper
+from sklearn.naive_bayes import MultinomialNB
+import argparse
 
 #
 train_txt_path = 'nist/data/qrels_train_dev.txt'
@@ -21,15 +22,17 @@ searcher = pysearch.SimpleSearcher(lucene_index_path)
 topics_dict = pysearch.get_topics('covid_round1')
 
 
-def run(k):
+def run(k, R):
     os.system('mkdir -p runs')
-    run_path = f'runs/tfidf.k{k}.txt'
-    os.system(f'rm {run_path}')
-    f = open(run_path, 'w+')
+    R_str = ''.join([str(i) for i in R])
+    run_path = f'runs/tfidf.k{k}.R{R_str}.txt'
+    print('Outputing:', run_path)
 
+    f = open(run_path, 'w+')
     for topic in topics:
         train_docs, train_labels = helper.get_X_Y_from_qrels_by_topic(
-            train_txt_path, topic)
+            train_txt_path, topic, R)
+        print(f'[topic][{topic}] eligible train docs {len(train_docs)}')
         train_vectors = vectorizer.get_vectors(train_docs)
 
         # classifier training
@@ -66,9 +69,11 @@ def run(k):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='measure the percentage of judged documents at various '
-                    'cutoffs.')
+        description='use tfidf vectorizer on cord-19 dataset with ccrf technique')
     parser.add_argument('--k', type=int, required=True, help='depth of search')
+    parser.add_argument('--R', type=int, required=True,
+                        nargs='+', help='Use docs with relevance 1s and/or 2s')
     args = parser.parse_args()
 
-    run(args.k)
+    R = sorted([r for r in args.R if r == 1 or r == 2])
+    run(args.k, R)

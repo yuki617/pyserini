@@ -26,8 +26,11 @@ def get_qrels_topics(path):
     return topics
 
 
-def get_X_Y_from_qrels_by_topic(path, topic):
-    qrels = read_qrels(path)
+def get_X_Y_from_qrels_by_topic(path, topic, R):
+    # always include topic 0
+    R.append(0)
+    qrels = [qrel for qrel in read_qrels(path) if qrel['topic'] == topic]
+    qrels = [qrel for qrel in read_qrels(path) if qrel['relevance'] in R]
     x, y = [], []
     for pack in qrels:
         if pack['topic'] == topic:
