@@ -1,32 +1,31 @@
 import sys
 sys.path.insert(0, './')
 
-import os
-from pyserini.search import pysearch
-from pyserini.vectorizer import TfidfVectorizer
-import helper
-from sklearn.naive_bayes import MultinomialNB
 import argparse
+from sklearn.naive_bayes import MultinomialNB
+import helper
+from pyserini.vectorizer import TfidfVectorizer
+from pyserini.search import pysearch
+import os
 
-#
+
+# path variables
 train_txt_path = 'nist/data/qrels_train_dev.txt'
 test_txt_path = 'nist/data/qrels_test.txt'
 lucene_index_path = 'nist/data/lucene-index-cord19-abstract-2020-05-01'
-
-#
-topics = helper.get_qrels_topics(train_txt_path)
-vectorizer = TfidfVectorizer(lucene_index_path, min_df=5)
-searcher = pysearch.SimpleSearcher(lucene_index_path)
 
 # get round 1 topics & detail
 topics_dict = pysearch.get_topics('covid_round1')
 
 
-def run(k, R):
-    os.system('mkdir -p runs')
+def run(k, R, df):
     R_str = ''.join([str(i) for i in R])
-    run_path = f'runs/tfidf.k{k}.R{R_str}.txt'
+    run_path = f'runs/tfidf.k{k}.R{R_str}.df{df}.txt'
     print('Outputing:', run_path)
+
+    topics = helper.get_qrels_topics(train_txt_path)
+    vectorizer = TfidfVectorizer(lucene_index_path, min_df=df)
+    searcher = pysearch.SimpleSearcher(lucene_index_path) if k > 0 else None
 
     f = open(run_path, 'w+')
     for topic in topics:
@@ -73,7 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('--k', type=int, required=True, help='depth of search')
     parser.add_argument('--R', type=int, required=True,
                         nargs='+', help='Use docs with relevance 1s and/or 2s')
+    parser.add_argument('--df', type=int, required=True,
+                        help='min document frequency for tfidf')
     args = parser.parse_args()
 
     R = sorted([r for r in args.R if r == 1 or r == 2])
-    run(args.k, R)
+    run(args.k, R, args.df)
